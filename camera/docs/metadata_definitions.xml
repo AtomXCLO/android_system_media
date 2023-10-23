@@ -827,6 +827,13 @@ xsi:schemaLocation="http://schemas.android.com/service/camera/metadata/ metadata
           manual control of android.sensor.exposureTime and
           android.sensor.frameDuration.
 
+          Note that the actual achievable max framerate also depends on the minimum frame
+          duration of the output streams. The max frame rate will be
+          `min(aeTargetFpsRange.maxFps, 1 / max(individual stream min durations)`. For example,
+          if the application sets this key to `{60, 60}`, but the maximum minFrameDuration among
+          all configured streams is 33ms, the maximum framerate won't be 60fps, but will be
+          30fps.
+
           To start a CaptureSession with a target FPS range different from the
           capture request template's default value, the application
           is strongly recommended to call
@@ -9416,8 +9423,8 @@ xsi:schemaLocation="http://schemas.android.com/service/camera/metadata/ metadata
           <tag id="V1" />
         </entry>
         <entry name="frameDuration" type="int64" visibility="public" hwlevel="full">
-          <description>Duration from start of frame exposure to
-          start of next frame exposure.</description>
+          <description>Duration from start of frame readout to
+          start of next frame readout.</description>
           <units>Nanoseconds</units>
           <range>See android.sensor.info.maxFrameDuration, {@link
           android.hardware.camera2.params.StreamConfigurationMap|ACAMERA_SCALER_AVAILABLE_MIN_FRAME_DURATIONS}.
@@ -9492,6 +9499,11 @@ xsi:schemaLocation="http://schemas.android.com/service/camera/metadata/ metadata
 
           This control is only effective if android.control.aeMode or android.control.mode is set to
           OFF; otherwise the auto-exposure algorithm will override this value.
+
+          *Note:* Prior to Android 13, this field was described as measuring the duration from
+          start of frame exposure to start of next frame exposure, which doesn't reflect the
+          definition from sensor manufacturer. A mobile sensor defines the frame duration as
+          intervals between sensor readouts.
           </details>
           <hal_details>
           For more details about stalling, see
