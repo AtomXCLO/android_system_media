@@ -73,6 +73,9 @@ xsi:schemaLocation="http://schemas.android.com/service/camera/metadata/ metadata
     <typedef name="imageFormat">
       <language name="java">int</language>
     </typedef>
+    <typedef name="versionCode">
+      <language name="java">int</language>
+    </typedef>
     <typedef name="streamConfigurationMap">
       <language name="java">android.hardware.camera2.params.StreamConfigurationMap</language>
     </typedef>
@@ -154,6 +157,9 @@ xsi:schemaLocation="http://schemas.android.com/service/camera/metadata/ metadata
     </typedef>
     <typedef name="colorSpaceProfiles">
         <language name="java">android.hardware.camera2.params.ColorSpaceProfiles</language>
+    </typedef>
+    <typedef name="lensIntrinsicsSample">
+        <language name="java">android.hardware.camera2.params.LensIntrinsicsSample</language>
     </typedef>
   </types>
 
@@ -6416,10 +6422,10 @@ xsi:schemaLocation="http://schemas.android.com/service/camera/metadata/ metadata
 
               Combinations of logical and physical streams, or physical streams from different
               physical cameras are not guaranteed. However, if the camera device supports
-              {@link CameraDevice#isSessionConfigurationSupported|ACameraDevice_isSessionConfigurationSupported},
+              {@link CameraManager#isSessionConfigurationWithParametersSupported|ACameraDevice_isSessionConfigurationSupported},
               application must be able to query whether a stream combination involving physical
               streams is supported by calling
-              {@link CameraDevice#isSessionConfigurationSupported|ACameraDevice_isSessionConfigurationSupported}.
+              {@link CameraManager#isSessionConfigurationWithParametersSupported|ACameraDevice_isSessionConfigurationSupported}.
 
               Camera application shouldn't assume that there are at most 1 rear camera and 1 front
               camera in the system. For an application that switches between front and back cameras,
@@ -8765,7 +8771,7 @@ xsi:schemaLocation="http://schemas.android.com/service/camera/metadata/ metadata
             When the key is present, only a PRIVATE/YUV output of the specified size is guaranteed
             to be supported by the camera HAL in the secure camera mode. Any other format or
             resolutions might not be supported. Use
-            {@link CameraDevice#isSessionConfigurationSupported|ACameraDevice_isSessionConfigurationSupported}
+            {@link CameraManager#isSessionConfigurationWithParametersSupported|ACameraDevice_isSessionConfigurationSupported}
             API to query if a secure session configuration is supported if the device supports this
             API.
 
@@ -12139,6 +12145,59 @@ xsi:schemaLocation="http://schemas.android.com/service/camera/metadata/ metadata
           is needed.
           </details>
         </entry>
+        <entry name="lensIntrinsicsSamples" type="float" visibility="java_public" synthetic="true"
+               container="array" typedef="lensIntrinsicsSample" aconfig_flag="concert_mode"
+               hal_version="3.9">
+          <array>
+            <size>n</size>
+          </array>
+          <description>
+          An array of intra-frame lens intrinsic samples.
+          </description>
+          <details>
+          Contains an array of intra-frame android.lens.intrinsicCalibration updates. This must
+          not be confused or compared to android.statistics.oisSamples. Although OIS could be the
+          main driver, all relevant factors such as focus distance and optical zoom must also
+          be included. Do note that OIS samples must not be applied on top of the lens intrinsic
+          samples.
+          Support for this capture result can be queried via
+          {@link android.hardware.camera2.CameraCharacteristics#getAvailableCaptureResultKeys}.
+          If available, clients can expect multiple samples per capture result. The specific
+          amount will depend on current frame duration and sampling rate. Generally a sampling rate
+          greater than or equal to 200Hz is considered sufficient for high quality results.
+          </details>
+        </entry>
+        <entry name="lensIntrinsicTimestamps" type="int64" visibility="ndk_public" container="array"
+               aconfig_flag="concert_mode" hal_version="3.9">
+          <array>
+            <size>n</size>
+          </array>
+          <description>
+          An array of timestamps of lens intrinsics samples, in nanoseconds.
+          </description>
+          <units>nanoseconds</units>
+          <details>
+          The array contains the timestamps of lens intrinsics samples. The timestamps are in the
+          same timebase as and comparable to android.sensor.timestamp.
+          </details>
+        </entry>
+        <entry name="lensIntrinsicSamples" type="float" visibility="ndk_public"
+               container="array" aconfig_flag="concert_mode" hal_version="3.9">
+          <array>
+            <size>5</size>
+            <size>n</size>
+          </array>
+          <description>
+          An array of intra-frame lens intrinsics.
+          </description>
+          <units>
+          Pixels in the android.sensor.info.preCorrectionActiveArraySize coordinate system.
+          </units>
+          <details>
+          The data layout and contents of individual array entries matches with
+          android.lens.intrinsicCalibration.
+          </details>
+        </entry>
       </dynamic>
     </section>
     <section name="tonemap">
@@ -12790,6 +12849,15 @@ xsi:schemaLocation="http://schemas.android.com/service/camera/metadata/ metadata
               HIDL ICameraDevice version 3.5.
               </notes>
             </value>
+            <value hal_version="3.9" aconfig_flag="session_hal_buf_manager">
+              SESSION_CONFIGURABLE
+              <notes>
+              This camera device supports the buffer management APIs provided by AIDL ICameraDevice
+              version 1. It also supports the ICameraDeviceSession.configureStreamsV2 call to
+              inform the camera framework whether HAL buffer manager must be used for the
+              particular session configured.
+              </notes>
+            </value>
           </enum>
           <description>
               The version of buffer management API this camera device supports and opts into.
@@ -12828,6 +12896,90 @@ xsi:schemaLocation="http://schemas.android.com/service/camera/metadata/ metadata
           HAL must populate the array with
           (hardware::camera::provider::V2_5::DeviceState, sensorOrientation) pairs for each
           supported device state bitwise combination.
+          </details>
+        </entry>
+        <entry name="sessionConfigurationQueryVersion" type="int32"
+          visibility="fwk_java_public" enum="true" typedef="versionCode"
+          hwlevel="legacy" aconfig_flag="feature_combination_query">
+          <enum>
+            <value id="34">UPSIDE_DOWN_CAKE</value>
+            <value id="35">VANILLA_ICE_CREAM</value>
+          </enum>
+          <description>The version of the session configuration query
+          {@link android.hardware.camera2.CameraManager#isSessionConfigurationWithParametersSupported}
+          API
+          </description>
+          <details>The possible values in this key correspond to the values defined in
+          android.os.Build.VERSION_CODES. Each version defines a set of feature combinations the
+          camera device must reliably report whether they are supported via
+          {@link android.hardware.camera2.CameraManager#isSessionConfigurationWithParametersSupported}
+          API. And the version is always less or equal to android.os.Build.VERSION.SDK_INT.
+
+          If set to UPSIDE_DOWN_CAKE, this camera device doesn't support
+          {@link android.hardware.camera2.CameraManager#isSessionConfigurationWithParametersSupported}.
+          Calling the method for this camera ID throws an UnsupportedOperationException.
+
+          If set to VANILLA_ICE_CREAM, the application can call
+          {@link android.hardware.camera2.CameraManager#isSessionConfigurationWithParametersSupported}
+          to check if the combinations of below features are supported.
+
+          * A subset of LIMITED-level device stream combinations.
+
+          Target 1    |     Size      | Target 2    |     Size    | Sample use case(s)
+          :----------:|:-------------:|:-----------:|:-----------:|:-------------------:
+          PRIV        | MAXIMUM       |             |             | Simple preview, GPU video processing, or no-preview video recording.
+          PRIV        | PREVIEW       |             |             |
+          PRIV        | S1440P        |             |             |
+          PRIV        | S1080P        |             |             |
+          PRIV        | S720P         |             |             |
+          YUV         | MAXIMUM       |             |             | In-application video/image processing.
+          YUV         | PREVIEW       |             |             |
+          YUV         | S1440P        |             |             |
+          YUV         | S1080P        |             |             |
+          YUV         | S720P         |             |             |
+          PRIV        | PREVIEW       | JPEG        | MAXIMUM     | Standard still imaging.
+          PRIV        | S1440P        | JPEG        | MAXIMUM     |
+          PRIV        | S1080P        | JPEG        | MAXIMUM     |
+          PRIV        | S720P         | JPEG        | MAXIMUM     |
+          PRIV        | S1440P        | JPEG        | S1440P      |
+          PRIV        | S1080P        | JPEG        | S1080P      |
+          PRIV        | S720P         | JPEG        | S1080P      |
+          YUV         | PREVIEW       | JPEG        | MAXIMUM     | In-app processing plus still capture.
+          YUV         | S1440P        | JPEG        | MAXIMUM     |
+          YUV         | S1080P        | JPEG        | MAXIMUM     |
+          YUV         | S720P         | JPEG        | MAXIMUM     |
+          YUV         | S1440P        | JPEG        | S1440P      |
+          YUV         | S1080P        | JPEG        | S1080P      |
+          YUV         | S720P         | JPEG        | S1080P      |
+          PRIV        | PREVIEW       | PRIV        | PREVIEW     | Standard recording.
+          PRIV        | S1440P        | PRIV        | S1440P      |
+          PRIV        | S1080P        | PRIV        | S1080P      |
+          PRIV        | S720P         | PRIV        | S720P       |
+          PRIV        | PREVIEW       | YUV         | PREVIEW     | Preview plus in-app processing.
+          PRIV        | S1440P        | YUV         | S1440P      |
+          PRIV        | S1080P        | YUV         | S1080P      |
+          PRIV        | S720P         | YUV         | S720P       |
+
+              - {@code MAXIMUM} size refers to the camera device's maximum output resolution for
+                that format from {@code StreamConfigurationMap#getOutputSizes}. {@code PREVIEW} size
+                refers to the best size match to the device's screen resolution, or to 1080p
+                (@code 1920x1080}, whichever is smaller. Both sizes are guaranteed to be supported.
+
+              - {@code S1440P} refers to {@code 1920x1440 (4:3)} and {@code 2560x1440 (16:9)}.
+                {@code S1080P} refers to {@code 1440x1080 (4:3)} and {@code 1920x1080 (16:9)}.
+                And {@code S720P} refers to {@code 960x720 (4:3)} and {@code 1280x720 (16:9)}.
+
+              - If a combination contains a S1440P, S1080P, or S720P stream,
+                both 4:3 and 16:9 aspect ratio sizes can be queried. For example, for the
+                stream combination of {PRIV, S1440P, JPEG, MAXIMUM}, and if MAXIMUM ==
+                4032 x 3024, the application will be able to query both
+                {PRIV, 1920 x 1440, JPEG, 4032 x 3024} and {PRIV, 2560 x 1440, JPEG, 4032 x 2268}
+                without an exception being thrown.
+
+          * VIDEO_STABILIZATION_MODES: {OFF, PREVIEW}
+          * AE_TARGET_FPS_RANGE: {{*, 30}, {*, 60}}
+          * DYNAMIC_RANGE_PROFILE: {STANDARD, HLG10}
+
           </details>
         </entry>
       </static>
@@ -13670,6 +13822,60 @@ xsi:schemaLocation="http://schemas.android.com/service/camera/metadata/ metadata
         <hal_details>
           Staring from HIDL ICameraDevice version 3.5, the tag must be available in the capture
           result metadata to indicate current active physical camera ID.
+        </hal_details>
+        <tag id="LOGICALCAMERA" />
+      </entry>
+      <entry name="activePhysicalSensorCropRegion" type="int32" visibility="public"
+             container="array" typedef="rectangle" aconfig_flag="concert_mode" hal_version="3.9">
+        <array>
+          <size>4</size>
+        </array>
+        <description>The current region of the active physical sensor that will be read out for this
+        capture.</description>
+        <units>Pixel coordinates relative to
+        android.sensor.info.activeArraySize or
+        android.sensor.info.preCorrectionActiveArraySize of the currently
+        android.logicalMultiCamera.activePhysicalId depending on distortion correction capability
+        and mode</units>
+        <details>
+          This capture result matches with android.scaler.cropRegion on non-logical single
+          camera sensor devices. In case of logical cameras that can switch between several
+          physical devices in response to android.control.zoomRatio, this capture result will
+          not behave like android.scaler.cropRegion and android.control.zoomRatio, where the
+          combination of both reflects the effective zoom and crop of the logical camera output.
+          Instead, this capture result value will describe the zoom and crop of the active physical
+          device. Some examples of when the value of this capture result will change include
+          switches between different physical lenses, switches between regular and maximum
+          resolution pixel mode and going through the device digital or optical range.
+          This capture result is similar to android.scaler.cropRegion with respect to distortion
+          correction. When the distortion correction mode is OFF, the coordinate system follows
+          android.sensor.info.preCorrectionActiveArraySize, with (0, 0) being the top-left pixel
+          of the pre-correction active array. When the distortion correction mode is not OFF,
+          the coordinate system follows android.sensor.info.activeArraySize, with (0, 0) being
+          the top-left pixel of the active array.
+
+          For camera devices with the
+          {@link android.hardware.camera2.CameraMetadata#REQUEST_AVAILABLE_CAPABILITIES_ULTRA_HIGH_RESOLUTION_SENSOR}
+          capability or devices where {@link CameraCharacteristics#getAvailableCaptureRequestKeys}
+          lists {@link CaptureRequest#SENSOR_PIXEL_MODE android.sensor.pixelMode}
+          , the current active physical device
+          android.sensor.info.activeArraySizeMaximumResolution /
+          android.sensor.info.preCorrectionActiveArraySizeMaximumResolution must be used as the
+          coordinate system for requests where android.sensor.pixelMode is set to
+          {@link android.hardware.camera2.CameraMetadata#SENSOR_PIXEL_MODE_MAXIMUM_RESOLUTION}.
+        </details>
+        <ndk_details>
+          The data representation is int[4], which maps to (left, top, width, height).
+        </ndk_details>
+        <hal_details>
+          The output streams must maintain square pixels at all
+          times, no matter what the relative aspect ratios of the
+          crop region and the stream are.  Negative values for
+          corner are allowed for raw output if full pixel array is
+          larger than active pixel array. Width and height may be
+          rounded to nearest larger supportable width, especially
+          for raw output, where only a few fixed scales may be
+          possible.
         </hal_details>
         <tag id="LOGICALCAMERA" />
       </entry>
