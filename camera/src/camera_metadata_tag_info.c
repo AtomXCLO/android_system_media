@@ -746,6 +746,10 @@ static tag_info_t android_statistics[ANDROID_STATISTICS_END -
     { "oisXShifts",                    TYPE_FLOAT  },
     [ ANDROID_STATISTICS_OIS_Y_SHIFTS - ANDROID_STATISTICS_START ] =
     { "oisYShifts",                    TYPE_FLOAT  },
+    [ ANDROID_STATISTICS_LENS_INTRINSIC_TIMESTAMPS - ANDROID_STATISTICS_START ] =
+    { "lensIntrinsicTimestamps",       TYPE_INT64  },
+    [ ANDROID_STATISTICS_LENS_INTRINSIC_SAMPLES - ANDROID_STATISTICS_START ] =
+    { "lensIntrinsicSamples",          TYPE_FLOAT  },
 };
 
 static tag_info_t android_statistics_info[ANDROID_STATISTICS_INFO_END -
@@ -809,6 +813,9 @@ static tag_info_t android_info[ANDROID_INFO_END -
                                         TYPE_BYTE   },
     [ ANDROID_INFO_DEVICE_STATE_ORIENTATIONS - ANDROID_INFO_START ] =
     { "deviceStateOrientations",       TYPE_INT64  },
+    [ ANDROID_INFO_SESSION_CONFIGURATION_QUERY_VERSION - ANDROID_INFO_START ] =
+    { "sessionConfigurationQueryVersion",
+                                        TYPE_INT32  },
 };
 
 static tag_info_t android_black_level[ANDROID_BLACK_LEVEL_END -
@@ -887,6 +894,9 @@ static tag_info_t android_logical_multi_camera[ANDROID_LOGICAL_MULTI_CAMERA_END 
     { "sensorSyncType",                TYPE_BYTE   },
     [ ANDROID_LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_ID - ANDROID_LOGICAL_MULTI_CAMERA_START ] =
     { "activePhysicalId",              TYPE_BYTE   },
+    [ ANDROID_LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_SENSOR_CROP_REGION - ANDROID_LOGICAL_MULTI_CAMERA_START ] =
+    { "activePhysicalSensorCropRegion",
+                                        TYPE_INT32  },
 };
 
 static tag_info_t android_distortion_correction[ANDROID_DISTORTION_CORRECTION_END -
@@ -3393,6 +3403,12 @@ int camera_metadata_enum_snprint(uint32_t tag,
         case ANDROID_STATISTICS_OIS_Y_SHIFTS: {
             break;
         }
+        case ANDROID_STATISTICS_LENS_INTRINSIC_TIMESTAMPS: {
+            break;
+        }
+        case ANDROID_STATISTICS_LENS_INTRINSIC_SAMPLES: {
+            break;
+        }
 
         case ANDROID_STATISTICS_INFO_AVAILABLE_FACE_DETECT_MODES: {
             break;
@@ -3546,12 +3562,31 @@ int camera_metadata_enum_snprint(uint32_t tag,
                     msg = "HIDL_DEVICE_3_5";
                     ret = 0;
                     break;
+                case ANDROID_INFO_SUPPORTED_BUFFER_MANAGEMENT_VERSION_SESSION_CONFIGURABLE:
+                    msg = "SESSION_CONFIGURABLE";
+                    ret = 0;
+                    break;
                 default:
                     msg = "error: enum value out of range";
             }
             break;
         }
         case ANDROID_INFO_DEVICE_STATE_ORIENTATIONS: {
+            break;
+        }
+        case ANDROID_INFO_SESSION_CONFIGURATION_QUERY_VERSION: {
+            switch (value) {
+                case ANDROID_INFO_SESSION_CONFIGURATION_QUERY_VERSION_UPSIDE_DOWN_CAKE:
+                    msg = "UPSIDE_DOWN_CAKE";
+                    ret = 0;
+                    break;
+                case ANDROID_INFO_SESSION_CONFIGURATION_QUERY_VERSION_VANILLA_ICE_CREAM:
+                    msg = "VANILLA_ICE_CREAM";
+                    ret = 0;
+                    break;
+                default:
+                    msg = "error: enum value out of range";
+            }
             break;
         }
 
@@ -3734,6 +3769,9 @@ int camera_metadata_enum_snprint(uint32_t tag,
             break;
         }
         case ANDROID_LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_ID: {
+            break;
+        }
+        case ANDROID_LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_SENSOR_CROP_REGION: {
             break;
         }
 
@@ -6723,6 +6761,12 @@ int camera_metadata_enum_value(uint32_t tag,
         case ANDROID_STATISTICS_OIS_Y_SHIFTS: {
             break;
         }
+        case ANDROID_STATISTICS_LENS_INTRINSIC_TIMESTAMPS: {
+            break;
+        }
+        case ANDROID_STATISTICS_LENS_INTRINSIC_SAMPLES: {
+            break;
+        }
 
         case ANDROID_STATISTICS_INFO_AVAILABLE_FACE_DETECT_MODES: {
             break;
@@ -6887,9 +6931,30 @@ int camera_metadata_enum_value(uint32_t tag,
                     ret = 0;
                     break;
                 }
+                enumName = "SESSION_CONFIGURABLE";
+                if (strncmp(name, enumName, size) == 0) {
+                    *value = ANDROID_INFO_SUPPORTED_BUFFER_MANAGEMENT_VERSION_SESSION_CONFIGURABLE;
+                    ret = 0;
+                    break;
+                }
             break;
         }
         case ANDROID_INFO_DEVICE_STATE_ORIENTATIONS: {
+            break;
+        }
+        case ANDROID_INFO_SESSION_CONFIGURATION_QUERY_VERSION: {
+                enumName = "UPSIDE_DOWN_CAKE";
+                if (strncmp(name, enumName, size) == 0) {
+                    *value = ANDROID_INFO_SESSION_CONFIGURATION_QUERY_VERSION_UPSIDE_DOWN_CAKE;
+                    ret = 0;
+                    break;
+                }
+                enumName = "VANILLA_ICE_CREAM";
+                if (strncmp(name, enumName, size) == 0) {
+                    *value = ANDROID_INFO_SESSION_CONFIGURATION_QUERY_VERSION_VANILLA_ICE_CREAM;
+                    ret = 0;
+                    break;
+                }
             break;
         }
 
@@ -7072,6 +7137,9 @@ int camera_metadata_enum_value(uint32_t tag,
             break;
         }
         case ANDROID_LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_ID: {
+            break;
+        }
+        case ANDROID_LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_SENSOR_CROP_REGION: {
             break;
         }
 
