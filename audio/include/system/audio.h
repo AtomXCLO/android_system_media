@@ -332,6 +332,24 @@ static inline CONSTEXPR audio_channel_mask_t audio_channel_mask_from_representat
 }
 
 /*
+ * Returns true so long as stereo channels are present in the channel mask.
+ *
+ * This is the minimum constraint for spatialization in Android V.
+ *
+ * Prior to V, AUDIO_CHANNEL_OUT_QUAD was the minimum constraint.
+ * Prior to T, AUDIO_CHANNEL_OUT_5POINT1 was the minimum constraint.
+ *
+ * TODO(b/303920722) rename to audio_is_channel_mask_spatialized() after testing
+ * is complete.
+ * TODO(b/316909431) flagged at caller due to lack of native_bridge flag support.
+ */
+static inline CONSTEXPR bool audio_channel_mask_contains_stereo(audio_channel_mask_t channelMask) {
+    return audio_channel_mask_get_representation(channelMask)
+                == AUDIO_CHANNEL_REPRESENTATION_POSITION
+            && (channelMask & AUDIO_CHANNEL_OUT_STEREO) == AUDIO_CHANNEL_OUT_STEREO;
+}
+
+/*
  * Returns true so long as Quadraphonic channels (FL, FR, BL, BR)
  * or (FL, FR, SL, SR) are completely specified
  * in the channel mask. We expect these 4 channels to be the minimum for
@@ -2017,8 +2035,13 @@ static inline size_t audio_bytes_per_sample(audio_format_t format)
 
 static inline size_t audio_bytes_per_frame(uint32_t channel_count, audio_format_t format)
 {
-    // cannot overflow for reasonable channel_count
-    return channel_count * audio_bytes_per_sample(format);
+    if (audio_has_proportional_frames(format)) {
+        // cannot overflow for reasonable channel_count
+        return channel_count * audio_bytes_per_sample(format);
+    } else {
+        // compressed formats have a frame size of 1 by convention.
+        return sizeof(uint8_t);
+    }
 }
 
 /* converts device address to string sent to audio HAL via set_parameters */
@@ -2417,6 +2440,11 @@ __END_DECLS
 
 /* Query if HwModule supports variable Bluetooth latency control */
 #define AUDIO_PARAMETER_BT_VARIABLE_LATENCY_SUPPORTED "isBtVariableLatencySupported"
+
+/* Reconfigure offloaded LE codec */
+#define AUDIO_PARAMETER_RECONFIG_LE "reconfigLe"
+/* Query if HwModule supports reconfiguration of offloaded LE codec */
+#define AUDIO_PARAMETER_LE_RECONFIG_SUPPORTED "isReconfigLeSupported"
 
 /**
  * For querying device supported encapsulation capabilities. All returned values are integer,
