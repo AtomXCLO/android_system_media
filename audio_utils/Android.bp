@@ -119,10 +119,6 @@ cc_library {
 cc_library {
     name: "libaudioutils_ext",
     vendor: true,
-    vndk: {
-        enabled: true,
-        extends: "libaudioutils",
-    },
     double_loadable: true,
     defaults: ["audio_utils_defaults"],
 
